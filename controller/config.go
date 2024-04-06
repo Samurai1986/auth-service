@@ -21,8 +21,12 @@ var (
 	dbPass      = "DB_PASSWORD"
 	dbName      = "DB_NAME"
 	dbSSLMode   = "DB_SSL_MODE"
-	envFilename = "../.env"
+	envFilename = ".env"
 )
+
+var EnvironmentMode = getEnvMode()
+
+
 
 func GetPostgresDBUrl(p *model.PostgresConfig) string {
 	return fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=%s",
@@ -39,45 +43,24 @@ func getEnv(key string, defaultval string) string {
 	if value, exists := os.LookupEnv(key); exists {
 		return value
 	}
-
+	log.Printf("ENV value %s not found. Load default value %s", key, defaultval)
 	return defaultval
 }
 
-// Todo: more simple
-func NewConfig() *model.AppConfig {
-	var config *model.AppConfig
-	appEnvMode := getEnv(envMode, "development")
-	if appEnvMode == "production" {
-		err := godotenv.Load(envFilename)
-		if err != nil {
-			log.Fatal("Error loading.env file")
-		}
-		config = &model.AppConfig{
-			EnvMode:  appEnvMode,
-			Host:     os.Getenv(appHost),
-			Port:     os.Getenv(appPort),
-			DBdriver: os.Getenv(dbDriver),
-			DBUrl: GetPostgresDBUrl(&model.PostgresConfig{
-				Host:     os.Getenv(dbHost),
-				Port:     os.Getenv(dbPort),
-				User:     os.Getenv(dbUser),
-				Database: os.Getenv(dbName),
-				Password: os.Getenv(dbPass),
-				SSLMode:  os.Getenv(dbSSLMode),
-			}),
-		}
-		return config
+//load .env file and try to load NODE_ENV value. if it not exists loading 
+func getEnvMode() string {
+	err := godotenv.Load(envFilename)
+	if err != nil {
+		log.Printf("Error loading %s file", envFilename)
 	}
-	config = loadDevEnv()
-	return config
+	value := getEnv(envMode, "development")
+	log.Printf("App starts in %s mode", value)
+	return value
 }
 
-// in dev mode app get values from .env file
-// in dev mode if value is not configured it has a default value
-func loadDevEnv() *model.AppConfig {
-	_ = godotenv.Load(envFilename)
+func NewConfig() *model.AppConfig {
 	return &model.AppConfig{
-		EnvMode:  getEnv(envMode, "development"),
+		EnvMode:  EnvironmentMode,
 		Host:     getEnv(appHost, "0.0.0.0"),
 		Port:     getEnv(appPort, "8000"),
 		DBdriver: getEnv(dbDriver, "postgres"),
