@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"fmt"
 	"log"
 	"os"
 
@@ -10,50 +9,53 @@ import (
 )
 
 // env variables
-var (
+const (
 	envMode     = "NODE_ENV"
 	appHost     = "APPLICATION_HOST"
 	appPort     = "APPLICATION_PORT"
 	dbDriver    = "DB_DRIVER"
-	dbHost      = "DB_HOST"
-	dbPort      = "DB_PORT"
-	dbUser      = "DB_USER"
-	dbPass      = "DB_PASSWORD"
-	dbName      = "DB_NAME"
-	dbSSLMode   = "DB_SSL_MODE"
+	dbUrl       = "DB_URL"
 	envFilename = ".env"
+)
+
+// default values
+const (
+	defaultEnvMode  = "development"
+	defaultAppHost  = "0.0.0.0"
+	defaultAppPort  = "8000"
+	defaultDBDriver = "postgres"
 )
 
 var EnvironmentMode = getEnvMode()
 
-
-
-func GetPostgresDBUrl(p *model.PostgresConfig) string {
-	return fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=%s",
-		p.User,
-		p.Password,
-		p.Host,
-		p.Port,
-		p.Database,
-		p.SSLMode,
-	)
-}
-
-func getEnv(key string, defaultval string) string {
+// expect only 1 defaultvalue
+func getEnv(key string, defaultval ...string) string {
 	if value, exists := os.LookupEnv(key); exists {
 		return value
 	}
-	log.Printf("ENV value %s not found. Load default value %s", key, defaultval)
-	return defaultval
+	if len(defaultval) == 0 {
+		log.Fatalf("Error: ENV value %s not found", key)
+	}
+	if len(defaultval) > 1 {
+		log.Fatalf("find more than 1 default values of %s ENV: %v", key, defaultval)
+	}
+	log.Printf("Warning: ENV value %s not found. Load default value %s", key, defaultval[0])
+	return defaultval[0]
 }
 
-//load .env file and try to load NODE_ENV value. if it not exists loading 
+// load .env file and try to load NODE_ENV value. if it not exists loading development environment
 func getEnvMode() string {
-	err := godotenv.Load(envFilename)
-	if err != nil {
-		log.Printf("Error loading %s file", envFilename)
+	value, exists := os.LookupEnv(envMode)
+	if !exists {
+		err := godotenv.Load(envFilename)
+		if err != nil {
+			log.Printf("Error loading %s file", envFilename)
+		}
+		value, exists = os.LookupEnv(envMode)
+		if !exists {
+			value = "development"
+		}
 	}
-	value := getEnv(envMode, "development")
 	log.Printf("App starts in %s mode", value)
 	return value
 }
@@ -61,16 +63,9 @@ func getEnvMode() string {
 func NewConfig() *model.AppConfig {
 	return &model.AppConfig{
 		EnvMode:  EnvironmentMode,
-		Host:     getEnv(appHost, "0.0.0.0"),
-		Port:     getEnv(appPort, "8000"),
-		DBdriver: getEnv(dbDriver, "postgres"),
-		DBUrl: GetPostgresDBUrl(&model.PostgresConfig{
-			User:     getEnv(dbUser, "postgres"),
-			Password: getEnv(dbPass, "postgres"),
-			Host:     getEnv(dbHost, "localhost"),
-			Port:     getEnv(dbPort, "5432"),
-			Database: getEnv(dbName, "postgres"),
-			SSLMode:  getEnv(dbSSLMode, "false"),
-		}),
+		Host:     getEnv(appHost, defaultAppHost),
+		Port:     getEnv(appPort, defaultAppPort),
+		DBdriver: getEnv(dbDriver, defaultDBDriver),
+		DBUrl:    getEnv(dbUrl),
 	}
 }

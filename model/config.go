@@ -8,12 +8,4 @@ type AppConfig struct {
 	DBUrl    string
 }
 
-type PostgresConfig struct {
-	Host     string
-	Port     string
-	Database string
-	User     string
-	Password string
-	SSLMode  string
-}
 
