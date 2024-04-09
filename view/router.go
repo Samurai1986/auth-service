@@ -9,9 +9,9 @@ import (
 )
 
 
-
+//TODO: fix empty fiels request
 func Router(r *gin.Engine) {
-	rg := r.Group("/v1")
+	rg := r.Group("/api/v1/auth-service")
 	{
 		//create
 		rg.POST("/sign-up", func(c *gin.Context) {
@@ -50,40 +50,82 @@ func Router(r *gin.Engine) {
 				c.JSON(http.StatusUnauthorized, gin.H{
 					"error": err.Error(),
 				})
+				return
 			}
 			c.JSON(http.StatusOK, user)
 		})
 		//sign out
 		rg.POST("/sign-out", func(ctx *gin.Context) {
-			ctx.JSON(http.StatusOK, gin.H{
+			ctx.JSON(http.StatusNotImplemented, gin.H{
 				"message": "sign out",
 			})
 		})
 		//read
-		rg.GET("/me", func(ctx *gin.Context) {
-			ctx.JSON(http.StatusOK, gin.H{
-                "message": "me",
-            })
+		rg.GET("/me", func(c *gin.Context) {
+			var user *model.UserDTO
+			err := controller.DecodeJSON(c.Request.Body, &user)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+                    "error": err.Error(),
+                })
+                return
+            }
+            user, err = controller.GetUser(user.Email)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": err.Error(),
+                })
+				return
+			}
+			c.JSON(http.StatusOK, user)
         })
 
 		//change paswords
-		rg.PUT("/change-password", func(ctx *gin.Context) {
-			ctx.JSON(http.StatusOK, gin.H{
+		rg.PATCH("/change-password", func(ctx *gin.Context) {
+			ctx.JSON(http.StatusNotImplemented, gin.H{
                 "message": "change password",
             })
+			
 		})
 		//update
-		rg.PATCH("/update", func(ctx *gin.Context) {
-			ctx.JSON(http.StatusOK, gin.H{
-                "message": "update",
-            })
+		rg.PUT("/update", func(c *gin.Context) {
+			var userdata *model.RegisterDTO
+			err := controller.DecodeJSON(c.Request.Body, &userdata)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+                    "error": err.Error(),
+                })
+                return
+            }
+
+            user, err := controller.UpdateUser(userdata)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+                    "error": err.Error(),
+                })
+                return
+            }
+			c.JSON(http.StatusOK, user)
         })
 
 		//delete
 		rg.DELETE("/delete", func(ctx *gin.Context) {
-            ctx.JSON(http.StatusOK, gin.H{
-                "message": "delete",
-            })
+			var user *model.RegisterDTO
+			err := controller.DecodeJSON(ctx.Request.Body, &user)
+			if err != nil {
+				ctx.JSON(http.StatusBadRequest, gin.H{
+                    "error": err.Error(),
+                })
+				return
+			}
+			user1, err := controller.DeleteUser(user.Email)
+			if err != nil {
+				ctx.JSON(http.StatusNotFound, gin.H{
+                    "error": err.Error(),
+                })
+				return
+			}
+            ctx.JSON(http.StatusOK, user1)
         })
     }
 

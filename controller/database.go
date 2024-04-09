@@ -41,7 +41,7 @@ func createDatabase(db *sql.DB) error{
 			email varchar(100) NOT NULL UNIQUE,
 			"password" varchar(250) NOT NULL,
 			first_name varchar(100) NOT NULL,
-			second_name varchar(100) NOT NULL,
+			last_name varchar(100) NOT NULL,
 			middle_name varchar(100)
 			);
 		`)
@@ -56,9 +56,9 @@ func createDatabase(db *sql.DB) error{
 func CreateUser(dto *model.RegisterDTO) (*model.UserDTO, error) {
 	var user model.UserDTO
 	db := getDBInstance()
-	err := db.QueryRow(`INSERT INTO user(email, "password", first_name, last_name, middle_name) 
+	err := db.QueryRow(`INSERT INTO users(email, "password", first_name, last_name, middle_name) 
 	VALUES ($1, $2, $3, $4, $5)
-	RETURNING id, email, first_name, second_name, middle_name`,
+	RETURNING id, email, first_name, last_name, middle_name`,
 	dto.Email, dto.Password, dto.FirstName, dto.LastName, dto.MiddleName).
 	Scan(&user.ID, &user.Email, &user.FirstName, &user.LastName, &user.MiddleName)
 	defer db.Close()
@@ -71,14 +71,25 @@ func CreateUser(dto *model.RegisterDTO) (*model.UserDTO, error) {
 func getUserbyEmail(email string) (*model.User, error) {
 	db := getDBInstance()
 	var user model.User
-	err := db.QueryRow(`SELECT id, email, "pasword", first_name, last_name, middle_name FROM user WHERE email = $1`, email).
+	err := db.QueryRow(`SELECT id, email, "password", first_name, last_name, middle_name FROM users WHERE email = $1`, email).
 	Scan(&user.ID, &user.Email, &user.Password, &user.FirstName, &user.LastName, &user.MiddleName)
 	defer db.Close()
 	if err!= nil {
-        return nil, err
+        return nil, fmt.Errorf("user with email %s not exists", email)
     }
 	return &user, nil
 }
+
+func convertTypeUserToDTO(dto *model.User) *model.UserDTO {
+	return &model.UserDTO{
+        ID:        dto.ID,
+        Email:     dto.Email,
+        FirstName: dto.FirstName,
+        LastName:  dto.LastName,
+        MiddleName: dto.MiddleName,
+    }
+}
+
 
 func Login(dto *model.LoginDTO) (*model.UserDTO, error) {
 	user, err := getUserbyEmail(dto.Email)
@@ -88,16 +99,10 @@ func Login(dto *model.LoginDTO) (*model.UserDTO, error) {
 	if user.Password != dto.Password {
         return nil, fmt.Errorf("wrong password")
     }
-	return &model.UserDTO{
-		ID:        user.ID,
-        Email:     user.Email,
-        FirstName: user.FirstName,
-		LastName:  user.LastName,
-        MiddleName: user.MiddleName,
-	}, nil
+	return convertTypeUserToDTO(user), nil
 }
 
-func UpdateUser(dto *model.UserDTO) (*model.UserDTO, error) {
+func UpdateUser(dto *model.RegisterDTO) (*model.UserDTO, error) {
 	var user model.UserDTO
 	db := getDBInstance()
 	err := db.QueryRow(`UPDATE users SET first_name = $2, last_name = $3, middle_name = $4 WHERE email = $1 
@@ -109,4 +114,28 @@ func UpdateUser(dto *model.UserDTO) (*model.UserDTO, error) {
         return nil, err
     }
 	return &user, nil
+}
+
+func DeleteUser(email string) (*model.UserDTO, error) {
+	db := getDBInstance()
+	user, err := getUserbyEmail(email)
+	if err!= nil {
+        return nil, err
+    }
+    _, err = db.Exec(`DELETE FROM users WHERE email = $1`, email)
+    defer db.Close()
+    if err!= nil {
+        return nil, err
+    }
+    return convertTypeUserToDTO(user), nil
+}
+
+func GetUser(email string) (*model.UserDTO, error) {
+	db := getDBInstance()
+    user, err := getUserbyEmail(email)
+    if err!= nil {
+        return nil, err
+    }
+    defer db.Close()
+    return convertTypeUserToDTO(user), nil
 }
