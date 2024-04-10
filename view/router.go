@@ -16,7 +16,7 @@ func Router(r *gin.Engine) {
 		//create
 		rg.POST("/sign-up", func(c *gin.Context) {
 			var user *model.RegisterDTO
-			err := controller.DecodeJSON(c.Request.Body, &user)
+			err := controller.DecodeJSON(c, &user)
 			
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{
@@ -38,7 +38,7 @@ func Router(r *gin.Engine) {
 		//login
 		rg.POST("/sign-in", func(c *gin.Context) {
 			var dto *model.LoginDTO
-			err := controller.DecodeJSON(c.Request.Body, &dto)
+			err := controller.DecodeJSON(c, &dto)
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{
                     "error": err.Error(),
@@ -63,7 +63,7 @@ func Router(r *gin.Engine) {
 		//read
 		rg.GET("/me", func(c *gin.Context) {
 			var user *model.UserDTO
-			err := controller.DecodeJSON(c.Request.Body, &user)
+			err := controller.DecodeJSON(c, &user)
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{
                     "error": err.Error(),
@@ -90,7 +90,7 @@ func Router(r *gin.Engine) {
 		//update
 		rg.PUT("/update", func(c *gin.Context) {
 			var userdata *model.RegisterDTO
-			err := controller.DecodeJSON(c.Request.Body, &userdata)
+			err := controller.DecodeJSON(c, &userdata)
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{
                     "error": err.Error(),
@@ -109,23 +109,23 @@ func Router(r *gin.Engine) {
         })
 
 		//delete
-		rg.DELETE("/delete", func(ctx *gin.Context) {
+		rg.DELETE("/delete", func(c *gin.Context) {
 			var user *model.RegisterDTO
-			err := controller.DecodeJSON(ctx.Request.Body, &user)
+			err := controller.DecodeJSON(c, &user)
 			if err != nil {
-				ctx.JSON(http.StatusBadRequest, gin.H{
+				c.JSON(http.StatusBadRequest, gin.H{
                     "error": err.Error(),
                 })
 				return
 			}
 			user1, err := controller.DeleteUser(user.Email)
 			if err != nil {
-				ctx.JSON(http.StatusNotFound, gin.H{
+				c.JSON(http.StatusNotFound, gin.H{
                     "error": err.Error(),
                 })
 				return
 			}
-            ctx.JSON(http.StatusOK, user1)
+            c.JSON(http.StatusOK, user1)
         })
     }
 
