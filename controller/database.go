@@ -91,7 +91,7 @@ func convertTypeUserToDTO(dto *model.User) *model.UserDTO {
 }
 
 
-func Login(dto *model.LoginDTO) (*model.UserDTO, error) {
+func Login(dto *model.LoginDTO) (*model.Tokens, error) {
 	user, err := getUserbyEmail(dto.Email)
 	if err!= nil {
         return nil, err
@@ -99,9 +99,15 @@ func Login(dto *model.LoginDTO) (*model.UserDTO, error) {
 	if user.Password != dto.Password {
         return nil, fmt.Errorf("wrong password")
     }
-	return convertTypeUserToDTO(user), nil
+	tokens, err := TokensSet(convertTypeUserToDTO(user))
+	if err!= nil {
+        return nil, err
+    }
+	return tokens, nil
 }
 
+//TODO: rewrite to id = $1
+//or (prefer) add another fuction to change email
 func UpdateUser(dto *model.RegisterDTO) (*model.UserDTO, error) {
 	var user model.UserDTO
 	db := getDBInstance()
@@ -116,6 +122,7 @@ func UpdateUser(dto *model.RegisterDTO) (*model.UserDTO, error) {
 	return &user, nil
 }
 
+//TODO rewrite to key id
 func DeleteUser(email string) (*model.UserDTO, error) {
 	db := getDBInstance()
 	user, err := getUserbyEmail(email)

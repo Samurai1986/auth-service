@@ -8,8 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-
-//TODO: fix empty fiels request
+//Main auth router
 func Router(r *gin.Engine) {
 	rg := r.Group("/api/v1/auth-service")
 	{
@@ -25,6 +24,20 @@ func Router(r *gin.Engine) {
                 return
             }
 
+			err = controller.CheckEmpty(user)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, &gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+			// user.Password, err = controller.HashPwd(user.Password)
+			// if err != nil {
+			// 	c.JSON(http.StatusInternalServerError, &gin.H{
+            //         "error": err.Error(),
+            //     })
+            //     return
+			// }
 			newUser, err := controller.CreateUser(user)
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{
@@ -45,6 +58,20 @@ func Router(r *gin.Engine) {
                 })
                 return
             }
+			err = controller.CheckEmpty(dto)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, &gin.H{
+                    "error": err.Error(),
+                })
+                return
+			}
+			// dto.Password, err = controller.HashPwd(dto.Password)
+			// if err != nil {
+			// 	c.JSON(http.StatusInternalServerError, &gin.H{
+            //         "error": err.Error(),
+            //     })
+            //     return
+            // }
 			user, err := controller.Login(dto)
 			if err != nil {
 				c.JSON(http.StatusUnauthorized, gin.H{
@@ -61,7 +88,7 @@ func Router(r *gin.Engine) {
 			})
 		})
 		//read
-		rg.GET("/me", func(c *gin.Context) {
+		rg.GET("/me", controller.Middleware(), func(c *gin.Context) {
 			var user *model.UserDTO
 			err := controller.DecodeJSON(c, &user)
 			if err != nil {
@@ -81,14 +108,14 @@ func Router(r *gin.Engine) {
         })
 
 		//change paswords
-		rg.PATCH("/change-password", func(ctx *gin.Context) {
+		rg.PATCH("/change-password", controller.Middleware(), func(ctx *gin.Context) {
 			ctx.JSON(http.StatusNotImplemented, gin.H{
                 "message": "change password",
             })
 			
 		})
 		//update
-		rg.PUT("/update", func(c *gin.Context) {
+		rg.PUT("/update", controller.Middleware(), func(c *gin.Context) {
 			var userdata *model.RegisterDTO
 			err := controller.DecodeJSON(c, &userdata)
 			if err != nil {
@@ -109,7 +136,7 @@ func Router(r *gin.Engine) {
         })
 
 		//delete
-		rg.DELETE("/delete", func(c *gin.Context) {
+		rg.DELETE("/delete", controller.Middleware(), func(c *gin.Context) {
 			var user *model.RegisterDTO
 			err := controller.DecodeJSON(c, &user)
 			if err != nil {

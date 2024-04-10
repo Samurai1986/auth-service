@@ -35,3 +35,8 @@ type RegisterDTO struct {
 	LastName   string `json:"last_name"`
 	MiddleName string `json:"middle_name,omitempty"`
 }
+
+type Tokens struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+}
