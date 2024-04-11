@@ -43,7 +43,7 @@ func getEnv(key string, defaultval ...string) string {
 	return defaultval[0]
 }
 
-// load .env file and try to load NODE_ENV value. if it not exists loading development environment
+// try to load NODE_ENV value. if it not exists loading development environment from .env
 func getEnvMode() string {
 	value, exists := os.LookupEnv(envMode)
 	if !exists {

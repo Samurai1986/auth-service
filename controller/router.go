@@ -15,15 +15,14 @@ import (
 	"github.com/google/uuid"
 )
 
-//TODO: store at reddis or make reload reddis after retart app
+// TODO: store at reddis or make reload reddis after retart app
 var sign []byte
 var _ = sha256.New().Sum(sign)
 
-
 var errorStatusUnauthorized = func(c *gin.Context, err error) {
 	c.JSON(http.StatusUnauthorized, gin.H{
-        "error": err.Error(),
-    })
+		"error": err.Error(),
+	})
 	c.Abort()
 }
 
@@ -69,7 +68,6 @@ func DecodeJSON(c *gin.Context, v any) error {
 // 	return returnPwd, nil
 // }
 
-
 func TokensSet(user *model.UserDTO) (*model.Tokens, error) {
 	accessToken := jwt.NewWithClaims(
 		jwt.SigningMethodHS256,
@@ -101,7 +99,7 @@ func TokensSet(user *model.UserDTO) (*model.Tokens, error) {
 	}, nil
 }
 
-//TODO: think about refresh_token
+// TODO: think about refresh_token
 func GetTokens(c *gin.Context) (*model.Tokens, error) {
 	var tokens *model.Tokens
 	err := DecodeJSON(c, &tokens)
@@ -131,7 +129,7 @@ func ParseToken(token string) (*jwt.Token, error) {
 }
 
 func VerifyToken(token string) (*jwt.Token, error) {
-	accessToken, err := ParseToken(token)
+	parsedToken, err := ParseToken(token)
 	if err != nil {
 		return nil, err
 	}
@@ -139,13 +137,13 @@ func VerifyToken(token string) (*jwt.Token, error) {
 	// if err != nil {
 	// 	return nil, err
 	// }
-	if !accessToken.Valid {
-		return nil, fmt.Errorf("access token is not valid")
+	if !parsedToken.Valid {
+		return nil, fmt.Errorf("token is not valid")
 	}
 	// if !refreshToken.Valid {
 	// 	return nil, fmt.Errorf("refresh token is not valid")
 	// }
-	return accessToken, nil
+	return parsedToken, nil
 
 }
 
@@ -159,10 +157,10 @@ func Middleware() func(c *gin.Context) {
 		}
 		claims := token.Claims.(jwt.MapClaims)
 		id, ok := claims["id"].(string)
-		if!ok {
-            errorStatusUnauthorized(c, fmt.Errorf("error on parse id from token"))
-            return
-        }
+		if !ok {
+			errorStatusUnauthorized(c, fmt.Errorf("error on parse id from token"))
+			return
+		}
 		uid, err := uuid.Parse(id)
 		if err != nil {
 			errorStatusUnauthorized(c, err)
