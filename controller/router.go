@@ -133,18 +133,12 @@ func VerifyToken(token string) (*jwt.Token, error) {
 	if err != nil {
 		return nil, err
 	}
-	// refreshToken, err := ParseToken(tokens.RefreshToken)
-	// if err != nil {
-	// 	return nil, err
-	// }
+
 	if !parsedToken.Valid {
 		return nil, fmt.Errorf("token is not valid")
 	}
-	// if !refreshToken.Valid {
-	// 	return nil, fmt.Errorf("refresh token is not valid")
-	// }
-	return parsedToken, nil
 
+	return parsedToken, nil
 }
 
 func Middleware() func(c *gin.Context) {
@@ -180,6 +174,16 @@ func Middleware() func(c *gin.Context) {
 			errorStatusUnauthorized(c, err)
 			return
 		}
-		c.Set("user", id)
+		c.Set("user", uid)
 	}
+}
+
+func GetUserIDFromContext(c *gin.Context) (uuid.UUID, error) {
+	id, exists := c.Get("user")
+	userID, ok := id.(uuid.UUID)
+	if !exists || id == "" || !ok {
+			
+		return uuid.Nil, fmt.Errorf("you do not have permission to update this user")
+	}
+	return userID, nil
 }

@@ -27,7 +27,7 @@ func TestController(t *testing.T) {
         LastName: testUser.LastName,
         MiddleName: testUser.MiddleName,
 	})
-	defer controller.DeleteUser(testUser.Email)
+	defer controller.DeleteUser(user.ID)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -39,7 +39,7 @@ func TestController(t *testing.T) {
 	if err!= nil {
         t.Error(err.Error())
     }
-	_, err = controller.DeleteUser(testUser.Email)
+	_, err = controller.DeleteUser(user.ID)
 	if err != nil {
 		t.Error(err.Error())
     }

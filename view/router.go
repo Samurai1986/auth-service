@@ -1,6 +1,7 @@
 package view
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/Samurai1986/auth-service/controller"
@@ -116,7 +117,7 @@ func Router(r *gin.Engine) {
 		})
 		//update
 		rg.PUT("/update", controller.Middleware(), func(c *gin.Context) {
-			var userdata *model.RegisterDTO
+			var userdata *model.UserDTO
 			err := controller.DecodeJSON(c, &userdata)
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{
@@ -124,7 +125,18 @@ func Router(r *gin.Engine) {
                 })
                 return
             }
-
+			userID, err := controller.GetUserIDFromContext(c) 
+			if err != nil{
+				c.JSON(http.StatusForbidden, err.Error())
+				return
+			}
+			if userID != userdata.ID {
+				c.JSON(
+					http.StatusForbidden, 
+					fmt.Errorf("you do not have permission to update this user"),
+				)
+				return
+			}
             user, err := controller.UpdateUser(userdata)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{
@@ -137,7 +149,7 @@ func Router(r *gin.Engine) {
 
 		//delete
 		rg.DELETE("/delete", controller.Middleware(), func(c *gin.Context) {
-			var user *model.RegisterDTO
+			var user *model.UserDTO
 			err := controller.DecodeJSON(c, &user)
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{
@@ -145,7 +157,19 @@ func Router(r *gin.Engine) {
                 })
 				return
 			}
-			user1, err := controller.DeleteUser(user.Email)
+			userID, err := controller.GetUserIDFromContext(c) 
+			if err != nil{
+				c.JSON(http.StatusForbidden, err.Error())
+				return
+			}
+			if userID != user.ID {
+				c.JSON(
+					http.StatusForbidden, 
+					fmt.Errorf("you do not have permission to delete this user"),
+				)
+				return
+			}
+			user1, err := controller.DeleteUser(user.ID)
 			if err != nil {
 				c.JSON(http.StatusNotFound, gin.H{
                     "error": err.Error(),
