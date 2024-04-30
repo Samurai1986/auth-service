@@ -1,3 +1,10 @@
 auth-service
 
-go 1.21.5
+  Используемые технологии и библиотеки:
+ • Go
+ • database/sql (lib/pq)
+ • PostgreSQL
+ • Gin
+ • JWT
+
+ 
