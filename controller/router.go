@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Samurai1986/auth-service/controller/database"
 	"github.com/Samurai1986/auth-service/model"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -43,6 +44,14 @@ func CheckEmpty(dst any) error {
 		return nil
 
 	}
+	modelUserDTO, ok := dst.(*model.UserDTO)
+	if ok {
+		if modelUserDTO.ID == uuid.Nil|| modelUserDTO.Email == "" || modelUserDTO.FirstName == "" || modelUserDTO.LastName == "" {
+			return fmt.Errorf("empty fields")
+		}
+		return nil
+
+	}
 	log.Printf("check %v is not implenmented", dst)
 	return nil
 }
@@ -56,17 +65,6 @@ func DecodeJSON(c *gin.Context, v any) error {
 	}
 	return nil
 }
-
-//not working as i expected
-// func HashPwd(password string) (string, error) {
-// 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-// 	if err != nil {
-// 		log.Printf("Error on hashing password: %e", err)
-// 		return "", fmt.Errorf("error on hashing password")
-// 	}
-// 	returnPwd := string(hashedPassword)
-// 	return returnPwd, nil
-// }
 
 func TokensSet(user *model.UserDTO) (*model.Tokens, error) {
 	accessToken := jwt.NewWithClaims(
@@ -122,7 +120,7 @@ func ParseToken(token string) (*jwt.Token, error) {
 		return sign, nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("error on parse token")
+		return nil, fmt.Errorf("unathorized")
 	}
 
 	return parsedToken, nil
@@ -165,7 +163,7 @@ func Middleware() func(c *gin.Context) {
 			errorStatusUnauthorized(c, fmt.Errorf("error parsing email from token"))
 			return
 		}
-		user, err := getUserbyEmail(email)
+		user, err := database.GetUser(email)
 		if err != nil {
 			errorStatusUnauthorized(c, err)
 			return

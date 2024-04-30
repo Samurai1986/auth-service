@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/Samurai1986/auth-service/controller"
+	"github.com/Samurai1986/auth-service/controller/database"
 	"github.com/Samurai1986/auth-service/model"
 	"github.com/gin-gonic/gin"
 )
@@ -39,7 +40,7 @@ func Router(r *gin.Engine) {
             //     })
             //     return
 			// }
-			newUser, err := controller.CreateUser(user)
+			newUser, err := database.CreateUser(user)
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{
                     "error": err.Error(),
@@ -73,14 +74,21 @@ func Router(r *gin.Engine) {
             //     })
             //     return
             // }
-			user, err := controller.Login(dto)
+			user, err := database.Login(dto)
 			if err != nil {
 				c.JSON(http.StatusUnauthorized, gin.H{
 					"error": err.Error(),
 				})
 				return
 			}
-			c.JSON(http.StatusOK, user)
+			tokens, err := controller.TokensSet(user)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+                    "error": err.Error(),
+                })
+                return
+            }
+			c.JSON(http.StatusOK, tokens)
 		})
 		//sign out
 		rg.POST("/sign-out", func(ctx *gin.Context) {
@@ -88,17 +96,16 @@ func Router(r *gin.Engine) {
 				"message": "sign out",
 			})
 		})
+
 		//read
 		rg.GET("/me", controller.Middleware(), func(c *gin.Context) {
-			var user *model.UserDTO
-			err := controller.DecodeJSON(c, &user)
-			if err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{
-                    "error": err.Error(),
-                })
-                return
-            }
-            user, err = controller.GetUser(user.Email)
+			userID, err := controller.GetUserIDFromContext(c) 
+			if err != nil{
+				c.JSON(http.StatusUnauthorized, err.Error())
+				return
+			}
+
+			user, err := database.GetUserByID(userID) 
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{
 					"error": err.Error(),
@@ -113,8 +120,8 @@ func Router(r *gin.Engine) {
 			ctx.JSON(http.StatusNotImplemented, gin.H{
                 "message": "change password",
             })
-			
 		})
+
 		//update
 		rg.PUT("/update", controller.Middleware(), func(c *gin.Context) {
 			var userdata *model.UserDTO
@@ -125,19 +132,29 @@ func Router(r *gin.Engine) {
                 })
                 return
             }
+			err = controller.CheckEmpty(userdata)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, &gin.H{
+                    "error": err.Error(),
+                })
+                return
+            }
+
 			userID, err := controller.GetUserIDFromContext(c) 
 			if err != nil{
-				c.JSON(http.StatusForbidden, err.Error())
+				c.JSON(http.StatusUnauthorized, gin.H{
+					"error": "you do not have permission to update this user",
+				})
 				return
 			}
 			if userID != userdata.ID {
 				c.JSON(
-					http.StatusForbidden, 
-					fmt.Errorf("you do not have permission to update this user"),
-				)
+					http.StatusForbidden, gin.H{
+					"error": "you do not have permission to update this user",
+				})
 				return
 			}
-            user, err := controller.UpdateUser(userdata)
+            user, err := database.UpdateUser(userdata)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{
                     "error": err.Error(),
@@ -159,20 +176,22 @@ func Router(r *gin.Engine) {
 			}
 			userID, err := controller.GetUserIDFromContext(c) 
 			if err != nil{
-				c.JSON(http.StatusForbidden, err.Error())
+				c.JSON(http.StatusUnauthorized, gin.H{
+					"error" : err.Error(),
+				})
 				return
 			}
 			if userID != user.ID {
 				c.JSON(
-					http.StatusForbidden, 
-					fmt.Errorf("you do not have permission to delete this user"),
-				)
+					http.StatusForbidden, gin.H{
+					"error": "you do not have permission to delete this user",
+				})
 				return
 			}
-			user1, err := controller.DeleteUser(user.ID)
+			user1, err := database.DeleteUser(user.ID)
 			if err != nil {
 				c.JSON(http.StatusNotFound, gin.H{
-                    "error": err.Error(),
+                    "error": fmt.Errorf("user with ID '%v' does not exist", user.ID),
                 })
 				return
 			}

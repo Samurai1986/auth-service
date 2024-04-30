@@ -1,4 +1,4 @@
-package controller
+package database
 
 import (
 	"database/sql"
@@ -77,6 +77,7 @@ func getUserbyEmail(email string) (*model.User, error) {
 	if err != nil {
 		return nil, fmt.Errorf("user with email %s not exists", email)
 	}
+	defer db.Close()
 	return &user, nil
 }
 
@@ -89,20 +90,11 @@ func getUserbyID(id uuid.UUID) (*model.User, error) {
 	if err != nil {
 		return nil, fmt.Errorf("user with id %s not exists", id)
 	}
+	defer db.Close()
 	return &user, nil
 }
 
-func convertTypeUserToDTO(dto *model.User) *model.UserDTO {
-	return &model.UserDTO{
-		ID:         dto.ID,
-		Email:      dto.Email,
-		FirstName:  dto.FirstName,
-		LastName:   dto.LastName,
-		MiddleName: dto.MiddleName,
-	}
-}
-
-func Login(dto *model.LoginDTO) (*model.Tokens, error) {
+func Login(dto *model.LoginDTO) (*model.UserDTO, error) {
 	user, err := getUserbyEmail(dto.Email)
 	if err != nil {
 		return nil, err
@@ -110,20 +102,15 @@ func Login(dto *model.LoginDTO) (*model.Tokens, error) {
 	if user.Password != dto.Password {
 		return nil, fmt.Errorf("wrong password")
 	}
-	tokens, err := TokensSet(convertTypeUserToDTO(user))
-	if err != nil {
-		return nil, err
-	}
-	return tokens, nil
+	return convertTypeUserToDTO(user), nil
 }
 
-// TODO: rewrite to id = $1
-// or (prefer) add another fuction to change email
 func UpdateUser(dto *model.UserDTO) (*model.UserDTO, error) {
 	var user model.UserDTO
-	// oldUser :=
 	db := getDBInstance()
-	err := db.QueryRow(`UPDATE users SET email = $2 first_name = $3, last_name = $4, middle_name = $5 WHERE id = $1 
+	err := db.QueryRow(`UPDATE users 
+	SET email = $2, first_name = $3, last_name = $4, middle_name = $5 
+	WHERE id = $1 
 	RETURNING id, email, first_name, last_name, middle_name`,
 		dto.ID, dto.Email, dto.FirstName, dto.LastName, dto.MiddleName).
 		Scan(&user.ID, &user.Email, &user.FirstName, &user.LastName, &user.MiddleName)
@@ -134,7 +121,6 @@ func UpdateUser(dto *model.UserDTO) (*model.UserDTO, error) {
 	return &user, nil
 }
 
-// TODO rewrite to key id
 func DeleteUser(id uuid.UUID) (*model.UserDTO, error) {
 	db := getDBInstance()
 	user, err := getUserbyID(id)
@@ -150,11 +136,28 @@ func DeleteUser(id uuid.UUID) (*model.UserDTO, error) {
 }
 
 func GetUser(email string) (*model.UserDTO, error) {
-	db := getDBInstance()
 	user, err := getUserbyEmail(email)
 	if err != nil {
 		return nil, err
 	}
-	defer db.Close()
 	return convertTypeUserToDTO(user), nil
+}
+
+func GetUserByID(id uuid.UUID) (*model.UserDTO, error) {
+	user, err := getUserbyID(id)
+	if err != nil {
+		return nil, err
+	}
+	return convertTypeUserToDTO(user), nil
+}
+
+
+func convertTypeUserToDTO(dto *model.User) *model.UserDTO {
+	return &model.UserDTO{
+		ID:         dto.ID,
+		Email:      dto.Email,
+		FirstName:  dto.FirstName,
+		LastName:   dto.LastName,
+		MiddleName: dto.MiddleName,
+	}
 }

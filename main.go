@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/Samurai1986/auth-service/controller"
+	"github.com/Samurai1986/auth-service/controller/database"
 	"github.com/Samurai1986/auth-service/view"
 	"github.com/gin-gonic/gin"
 )
@@ -13,7 +14,7 @@ func main() {
 	config := controller.NewConfig()
 	fmt.Print(config)
 	//TODO: init database
-	db, err := controller.InitDatabase(config)
+	db, err := database.InitDatabase(config)
 	fmt.Print(db)
 	if err != nil {
 		panic(err)
